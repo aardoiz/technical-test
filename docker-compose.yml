@@ -1,0 +1,36 @@
+services:
+  backend:
+    image: ""
+    container_name: aardoiz-chat-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    hostname: api
+    restart: always
+    networks:
+      - aardoiz-chat
+    depends_on:
+      - mongo
+    ports:
+      - "8000:8000"
+    tty: true
+    env_file:
+      - .env
+
+  mongo:
+    image: mongo:7
+    container_name: aardoiz-chat-mongo
+    networks:
+      - aardoiz-chat
+    volumes:
+      - ./.data/mongo:/data/db
+    ports:
+      - "27017:27017"
+
+volumes:
+  app-db-data:
+
+networks:
+  aardoiz-chat:
+    driver: 'bridge'
