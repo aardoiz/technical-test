@@ -11,7 +11,7 @@ services:
     networks:
       - aardoiz-chat
     depends_on:
-      - mongo
+      - mongodb
       - qdrant
     ports:
       - "8000:8000"
@@ -19,7 +19,7 @@ services:
     env_file:
       - .env
 
-  mongo:
+  mongodb:
     image: mongo:7
     container_name: aardoiz-chat-mongo
     networks:
@@ -28,6 +28,8 @@ services:
       - ./.data/mongo:/data/db
     ports:
       - "27018:27017"
+    hostname: mongodb
+
 
   qdrant:
     image: qdrant/qdrant
@@ -38,6 +40,7 @@ services:
       - ./.data/qdrant:/qdrant/storage:z
     ports:
       - "6333:6333"
+    hostname: qdrant
 
 networks:
   aardoiz-chat:
