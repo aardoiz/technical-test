@@ -4,11 +4,8 @@ from time import time
 
 from src.chat.domain.chat.conversation_schema import Conversation
 from src.chat.domain.generation.text_models import TextResponse
-from src.chat.domain.searcher.searcher_models import Document
 from src.chat.domain.chat.chat_models import LLMTokens
 from src.chat.generation.llm_clients.gpt import AzureClient
-
-
 
 
 class Reformulator:
@@ -24,7 +21,9 @@ class Reformulator:
         history = []
         for idx, query in enumerate(conversation.queries):
             history.append({"role": "user", "content": query})
-            history.append({"role": "assistant", "content": conversation.llm_response[idx]})
+            history.append(
+                {"role": "assistant", "content": conversation.llm_response[idx]}
+            )
 
         return history
 
@@ -32,7 +31,12 @@ class Reformulator:
         i_time = time()
         history = self.build_history(conversation)
         if not history:
-            return TextResponse(content=query, token_count=LLMTokens(), prompt_messages=[], time=0)
+            return TextResponse(
+                content=query,
+                token_count=LLMTokens(prompt_tokens=0, completion_tokens=0),
+                prompt_messages=[],
+                time=0,
+            )
 
         messages = [
             {
@@ -63,7 +67,43 @@ class Reformulator:
             },
         ]
 
-        llm_response: ChatCompletion = self.llm_client.generate(messages, temperature=0.0, max_tokens=1000)
+        llm_response: ChatCompletion = self.llm_client.generate(
+            messages, temperature=0.0, max_tokens=1000
+        )
+
+        text_response = llm_response.choices[0].message.content
+        e_time = time()
+
+        return TextResponse(
+            content=text_response,
+            token_count=LLMTokens(
+                prompt_tokens=llm_response.usage.prompt_tokens,
+                completion_tokens=llm_response.usage.completion_tokens,
+            ),
+            prompt_messages=messages,
+            time=(e_time - i_time),
+        )
+
+    def ir_reformulate(self, query: str) -> TextResponse:
+        i_time = time()
+
+        messages = [
+            {
+                "role": "system",
+                "content": "Eres un sistema de apoyo para un Asistente basado en LLMs."
+                "Tu función es aislar dentro de la query del usuario la información que va \
+                 a ir a un sistema de recuperación de información."
+                "Ejemplo: Si preguntan los últimos artículos sobre LLMs, tienes que devolver solo 'LLM'",
+            },
+            {
+                "role": "user",
+                "content": f"Dada la query del usuario: {query}, que parte hay que usar en el sistema IR",
+            },
+        ]
+
+        llm_response: ChatCompletion = self.llm_client.generate(
+            messages, temperature=0.0, max_tokens=1000
+        )
 
         text_response = llm_response.choices[0].message.content
         e_time = time()

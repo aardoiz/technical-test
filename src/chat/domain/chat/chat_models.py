@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from src.chat.domain.searcher.searcher_models import SearchResponse
+from src.chat.domain.searcher.searcher_models import Source
 
 
 class LLMTokens(BaseModel):
@@ -9,18 +9,17 @@ class LLMTokens(BaseModel):
 
 
 class ChatMessage(BaseModel):
-
     chat_id: str
     query: str
+    agent: str
     summary: str
-    sources: SearchResponse
+    sources: list[Source]
     llm_inference: str
     inference_time: float
     ir_time: float
-    external_api_time: float
     llm_tokens: LLMTokens
 
-class Conversation(BaseModel):
 
+class Conversation(BaseModel):
     queries: list[str] = []
     llm_response: list[str] = []

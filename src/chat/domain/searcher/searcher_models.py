@@ -8,6 +8,12 @@ class Document(BaseModel):
     score: float
 
 
+class Source(BaseModel):
+    title: str
+    score: float
+
+
 class SearchResponse(BaseModel):
     documents: list[Document]
     time: float
+    sources: list[Source]
