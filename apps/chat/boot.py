@@ -13,7 +13,7 @@ class Boot:
             uri=self.settings.MONGO_URI,
             database_name=self.settings.MONGO_DATABASE,
             collection=self.settings.MONGO_COLLECTION,
-            
         )
+
 
 boot = Boot()

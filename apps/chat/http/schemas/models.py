@@ -7,5 +7,6 @@ class AssistantInput(BaseModel):
     query: str
     chat_id: str = ""
 
+
 class AssistantOutput(BaseModel):
     result: ChatMessage

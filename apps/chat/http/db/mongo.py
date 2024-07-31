@@ -15,7 +15,10 @@ class MongoAssistantRepository:
     def get_history(self, chat_id: str) -> Conversation:
         chat_history = self.collection.find_one({"chat_id": chat_id})
         if chat_history:
-            return Conversation(queries=chat_history["queries"], llm_response=chat_history["llm_response"])
+            return Conversation(
+                queries=chat_history["queries"],
+                llm_response=chat_history["llm_response"],
+            )
         return Conversation()
 
     def insert_document(self, doc: ChatMessage) -> None:
@@ -27,7 +30,10 @@ class MongoAssistantRepository:
             "$push": {
                 "queries": doc.query,
                 "reformulated": doc.summary,
-                "sources": {"$each": update_document["sources"]},
+                "agent": doc.agent,
+                "sources": [
+                    {"title": src.title, "score": src.score} for src in doc.sources
+                ],
                 "llm_response": doc.llm_inference,
                 "inference_time": doc.inference_time,
                 "ir_time": doc.ir_time,

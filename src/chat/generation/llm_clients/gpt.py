@@ -16,7 +16,9 @@ class AzureClient:
         self.deployment = settings.AZURE_API_DEPLOYMENT
         self.embeddings = settings.AZURE_API_EMBEDDINGS
 
-    def generate(self, message_history: list[dict], temperature: float, max_tokens: int) -> ChatCompletion:
+    def generate(
+        self, message_history: list[dict], temperature: float, max_tokens: int
+    ) -> ChatCompletion:
         return self.client.chat.completions.create(
             messages=message_history,
             model=self.deployment,
