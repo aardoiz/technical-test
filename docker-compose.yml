@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ""
+    image:  aardoiz-chat-api:latest
     container_name: aardoiz-chat-api
     build:
       context: .
@@ -12,6 +12,7 @@ services:
       - aardoiz-chat
     depends_on:
       - mongo
+      - qdrant
     ports:
       - "8000:8000"
     tty: true
@@ -26,10 +27,17 @@ services:
     volumes:
       - ./.data/mongo:/data/db
     ports:
-      - "27017:27017"
+      - "27018:27017"
 
-volumes:
-  app-db-data:
+  qdrant:
+    image: qdrant/qdrant
+    container_name: aardoiz-chat-qdrant
+    networks:
+      - aardoiz-chat
+    volumes:
+      - ./.data/qdrant:/qdrant/storage:z
+    ports:
+      - "6333:6333"
 
 networks:
   aardoiz-chat:
