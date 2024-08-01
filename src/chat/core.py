@@ -22,7 +22,7 @@ class Core:
         self.planner = Planner(self.llm)
         self.arxivAPI = ArxivAPI()
 
-    def deus_ex_chat(
+    def run_chat(
         self, chat_id: str, query: str, conversation: Conversation
     ) -> ChatMessage:
         complex_query: TextResponse = self.reformulator.reformulate(query, conversation)
