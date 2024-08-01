@@ -29,6 +29,8 @@ class Core:
 
         planner_result: TextResponse = self.planner.select_agent(query=complex_query)
 
+        # Soy consciente de que este pequeño loop de condicionales no nada robusto,
+        # pero he preferido priorizar el resto de funcionalidades del programa
         if "General" in planner_result.content:
             context = SearchResponse(documents=[], time=0.0, sources=[])
 

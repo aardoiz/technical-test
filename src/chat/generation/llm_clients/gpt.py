@@ -58,3 +58,5 @@ class LangChainAzure:
         ).invoke(message_history)
 
         return self.conversor.to_azure(response)
+
+    def generate_embedding(self, text: str) -> Embedding: ...
