@@ -103,15 +103,11 @@ Simplemente al estar en docker con la ejecución del comando:
 ```bash
 make build
 ```
-Y luego:
-```bash
-make up
-```
-Se lanzan los contenedores del proyecto.
+Se construyen y lanzan los contenedores del proyecto.
 
 # TODO
 
 - [x] Hacer funcional la API
 - [x] Añadir funcionalidades en LangChain
 - [x] Crear un ReadMe con la docu
-- [ ] Añadir un esquema de los componentes
+- [x] Añadir un esquema de los componentes
