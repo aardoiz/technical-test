@@ -1,113 +1,108 @@
-# Prueba Técnica
-Candidato: Alfonso Ardoiz
-Fecha: 02/08/2024
+# Technical Test
+Candidate: Alfonso Ardoiz  
+Date: 15/08/2025
 
-# Resumen del proyecto
-Pequeño asistente para la prueba técnica.
+# Project Overview
+A small assistant for the technical test.
 
-El proyecto que he decidido montar consiste en un asistente con tres funcionalidades: la recuperación de papers de arxiv, la consulta de un par de páginas de docu de LangChain y la resulución de peticiones genéricas.
+The project I decided to build consists of an assistant with three functionalities: retrieving papers from arXiv, querying a couple of pages from LangChain’s documentation, and handling generic requests.
 
-Como es de esperar, todas las funcionalidades son mejorables y he llegado hasta el punto que me ha dado tiempo.
+As expected, all functionalities could be improved further, and I reached the point that time allowed.
 
-> El motivo de este proyecto, la recuperación de papers de Arxiv como consulta a API externa, era una cosa que tenía pendiente como proyecto personal y he decidido aprovechar la ocasión... :sunglasses:
+> The reason behind this project—the retrieval of papers from arXiv by querying an external API—was something I had pending as a personal project, and I decided to take the opportunity... 😎
 
 # Flow
 
 ![Flow Image](docs/internal_flow.png)
 
-# Componentes
+# Components
 
 ## 1. Docker
-El asistente está montado dentro de un docker que fusiona tres servicios:
-    - El backend del asistente
-    - Una base de datos vectorial (Qdrant) con tres páginas web de la documentación de LangChain
-    - Un Mongo para guardar las interacciones con el usuario y gestionar el historial
+The assistant is deployed within a Docker container that merges three services:
+  - The assistant’s backend
+  - A vector database (Qdrant) with three web pages from LangChain’s documentation
+  - A MongoDB instance to store user interactions and manage history
 
-Para ello se ha usado un pequeño dockercompose donde se ha vinculado mediante un volumen la carpeta a la que accederán tanto el Qdrant como Mongo y se han asignado los puertos correspondientes
-> ¡Importante! Se puede cambiar el puerto local del mongo, en mi caso tenía el 27017 ocupado y he tenido que coger el 27018
+For this, a small docker-compose file was used where the folder accessed by both Qdrant and Mongo is linked via a volume, and the corresponding ports are assigned.  
+> Important! The local port for Mongo can be changed. In my case, port 27017 was occupied, so I had to use 27018.
 
 ## 2. API
-El backend está conformado por dos carpetas separadas en funcionalidades, por un lado el código del asistente (src) y por otro todo lo que tiene que ver con el API (apps)
+The backend is structured into two separate folders by functionality—on one side, the assistant code (src), and on the other, all API-related code (apps).
 
-Incluye un archivo boot que sirve como "motor" para poner en marcha el código del asistente, y luego un pequeño API con dos vistas. La propia vista del chat y una vista de health (por defecto).
+It includes a boot file that acts as the “engine” to start the assistant’s code, and then a small API with two endpoints: the chat view and, by default, a health view.
 
-Para interactuar con el chat hace falta enviar un `AssistantInput` que tiene dos campos obligatorios, la "query" del usuario, y el "chat_id". Este objeto está definido en schemas/models
+To interact with the chat, one must send an `AssistantInput` that has two required fields: the user's "query" and the "chat_id". This object is defined in schemas/models.
 
-Finalmente la carpeta apps también incluyen las funcionalidades del mongo. Así el código del asistente solo se encarga de la generación de contenido.
+Finally, the apps folder also includes the Mongo functionalities. This way, the assistant code is solely responsible for content generation.
 
-## 3. Código
-El núcleo de la prueba técnica. De primeras he organizado todo en chat, y he sacado fuera lo que va a ser utilizado de manera global. Las settings y el logger.
+## 3. Code
+This is the core of the technical test. Initially, I organized everything within the chat, pulling out globally used components such as settings and the logger.
 
-Respecto al código, hay un archivo que sirve de orquestador `core.py` y tres subcarpetas. Este archivo sirve como núcleo y ordena el flujo que se sigue en cada inferencia.
+Regarding the code, there is an orchestrator file `core.py` and three subfolders. This file serves as the core and orchestrates the sequence of each inference.
 
-En la carpeta de dominio he definido las clases y objetos propios del sistema, dividiendo en subcarpetas cada funcionalidad concreta. Como mención especial dentro de `domain/generation/langchain_conversor.py` se encuentra un conversor que he creado específicamente para poder intercambiar código de langchain con código puro con la librería de openai.
-
----
-
-En la carpeta de generación se incluye todas las funcionalidades de los agentes, y las clases particulares que he creado para Azure/Langchain. Al final he buscado aislar el método principal de inferencias, de la propia gestión de los mensajes por parte de los agentes.
-
-Respecto a los agentes he incluido los siguientes:
-- **Reformulator**: Se encarga de mejorar la query del usuario usando la conversación anterior. Para ejemplificar su uso, podemos pensar en que si un usuario pregunta: "Mejor restaurante de Madrid", y su siguiente petición es "Y de Valencia?", lo que realmente está preguntando es "Mejor restaurante de Valencia". Este agente es un prototipo que estoy testeando, y para esta prueba técnica me ha parecido interesante incluir.
-
-- **IR-Reformulator**: Agente específico para las búsquedas en Arxiv. Convierte una query como "Papers recientes sobre LLMs" en el tópico central -> "LLMs" mejorando de esta manera el sistema IR.
-
-- **Planner**: Planificador de los siguientes agentes / flujo de la inferencia. Se le ha dado contexto del asistente y se le ha hecho elegir que camino hay que tomar según la query del usuario. (Lo malo de este agente es cómo he implementado la subsecuente llamada de código...)
-
-- **Assistant**: Agente general para la verbalización del contenido. He estructurado el código de tal forma que sea cual sea el camino seleccionado por el planner, el assistant utiliza la query y el contexto para responder al usuario. Si es una pregunta general no hay contexto, si es una llamada al API de Arxiv será unos papers, y si es el propio RAG, será un doc de la docu de LangChain.
-
-A su vez, además de los agentes, he creado una clase principal para gestionar las llamadas al modelo de openai (concretamente el gpt4o).
-
-Esta clase podría ser definida como LLM en una clase abstracta en otro fichero, pero para hacerlo más simple he decidido implementarlo directamente en dos clases: `AzureClient` y `LangChainAzure`.
-Ambas clases incluyen un método para generar texto y otro para generar embeddings (lamentablemente no he tenido tiempo de adaptar la de LC para esto.).
-
-La idea detrás de esta separación Agentes / Cliente, es repartir las funciones y gestionar bien las dependencias. Si abstraemos el funcionamiento de los agentes, vemos que lo único que hacen es preparar la lista de mensajes de cierta manera, y ya es el cliente quién hace la llamada a Azure con la propia función de generar texto y una lista de mensajes.
+Within the domain folder, I have defined the system’s specific classes and objects, dividing them into subfolders for each specific functionality. As a special mention, inside `domain/generation/langchain_conversor.py` there is a converter I created specifically to interchange LangChain code with pure code using the OpenAI library.
 
 ---
 
-Finalmente la carpeta de búsquedas incluye el código de la llamada a una API externa, y el del RAG.
+Within the generation folder, all functionalities related to the agents are included, as well as the specific classes I created for Azure/LangChain. In the end, I aimed to isolate the main inference method from the agent’s message handling.
 
-- **Arxiv**: Hace una petición GET a la API pública de este repositorio de artículos científicos. He hardcodeado que utilice siempre los últimos papers respecto a la query que se haga, pero espero que valga para esta prueba técnica.
+Regarding the agents, I included the following:
+- Reformulator: It is responsible for improving the user’s query using the previous conversation. For example, if a user asks, "Best restaurant in Madrid," and then follows up with, "And in Valencia?", what they are really asking is "Best restaurant in Valencia." This agent is a prototype I am testing, and for this technical test I thought it interesting to include.
+- IR-Reformulator: A specific agent for arXiv searches. It transforms a query like "Recent papers on LLMs" into the central topic -> "LLMs," thereby improving the IR system.
+- Planner: Plans which agents/flow to follow next during inference. It is provided with the assistant’s context and chooses the pathway based on the user’s query. (The downside of this agent is how I implemented the subsequent code call…)
+- Assistant: A general agent for content verbalization. I structured the code such that, whichever path is selected by the planner, the assistant uses the query and context to respond to the user. If it’s a general question, there is no context; if it’s a call to the arXiv API, it will be a set of papers; and if it’s the RAG itself, it will be a document from LangChain’s documentation.
 
-- **Qdrant**: Conexión con la base de datos vectorial para utilizar documentos como contexto para RAG. Es un poco triste porque solo hay tres docuemntos en la DB.
+Additionally, besides the agents, I created a main class to manage calls to the OpenAI model (specifically gpt4o).
+
+This class could have been defined as an LLM in an abstract class in another file, but to keep things simple I decided to implement it directly in two classes: `AzureClient` and `LangChainAzure`.  
+Both classes include a method to generate text and another to generate embeddings (unfortunately, I did not have time to adapt the LC one for the latter).
+
+The idea behind this separation of Agents/Client is to distribute functionalities and properly manage dependencies. If we abstract away the agents’ function, we see that all they do is prepare the message list in a certain manner, and then it is the client that calls Azure with the text generation function and the list of messages.
 
 ---
 
-> Tanto para los agentes como para las búsquedas, se devuelven objetos propios (`TextResponse` y `SearchResponse`) que se utilizarán para la construcción del objeto que devuelve el API que hemos comentado arriba y para el almacenamiento de la inferencia en la base de datos.
+Finally, the searches folder includes the code for calling an external API and for the RAG.
 
+- Arxiv: Makes a GET request to the public API of this scientific article repository. I hardcoded it to always use the latest papers relative to the made query, but I hope that is sufficient for this technical test.
+- Qdrant: Connects to the vector database to use documents as context for RAG. It’s a bit unfortunate because there are only three documents in the DB.
+
+---
+
+> For both the agents and the searches, custom objects (`TextResponse` and `SearchResponse`) are returned. These will be used to construct the object returned by the API described above and to store the inference in the database.
 
 ## 4. Mongo
 
-Utilizado para la gestión del historial del usuario de manera interna, como para la persistencia del uso del API en una DB.
+Used for managing user history internally as well as persisting API usage in a database.
 
-De manera simplificada, se ha definido un objeto (documento) que se subirá a la mongo, y un par de métodos para insertar/actualizar el documento.
+In short, an object (document) has been defined that will be uploaded to Mongo, along with a couple of methods to insert/update the document.
 
-El haber definido objetos propios previamente nos habilita poder seleccionar de cada uno lo que queremos guardar: tiempos de ejecución, referencia de documentos (título y score), costes de cada agente, artefactos intermedios...
+Defining custom objects beforehand allows us to select exactly what we want to save from each: execution times, document references (title and score), costs of each agent, intermediate artifacts...
 
-## 5. Gestión de librerías, Variables de entorno y Comandos bash
+## 5. Library Management, Environment Variables, and Bash Commands
 
-La gestión de librerías se ha realizado mediante poetry.
+Library management has been handled using Poetry.
 
-Para la limpieza del código se ha utilizado pre-commit.
+Pre-commit has been used for code cleanup.
 
-Las variables están guardadas en el .env y luego se ha utilizado pydantic_settings para su uso en el código.
+The variables are stored in the .env file and pydantic_settings is used to access them in the code.
 
-Además, se ha incluido un Makefile con los comandos más cómodos del sistema (cosas de docker y del api).
+Additionally, a Makefile has been included with the most convenient commands for the system (Docker and API-related tasks).
 
+# Running the Program
 
-# Ejecución del programa
+IMPORTANT! :boom:  
+> Azure credentials must be included in the .env file
 
-¡IMPORTANTE! :boom:
->  Hay que incluir credenciales de Azure en el .env
-
-Simplemente al estar en docker con la ejecución del comando:
-```bash
+Simply by being in Docker and running the command:
+----------------------------------------------------
 make build
-```
-Se construyen y lanzan los contenedores del proyecto.
+----------------------------------------------------
+the project’s containers are built and launched.
 
 # TODO
 
-- [x] Hacer funcional la API
-- [x] Añadir funcionalidades en LangChain
-- [x] Crear un ReadMe con la docu
-- [x] Añadir un esquema de los componentes
+- [x] Make the API functional
+- [x] Add functionalities in LangChain
+- [x] Create a README with the documentation
+- [x] Add a diagram of the components
+---
